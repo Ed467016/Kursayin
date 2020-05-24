@@ -1,6 +1,8 @@
 ﻿#include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <iomanip>
 
 #define INPUT_F_NAME "\\input.txt"
 #define OUTPUT_F_NAME "\\output.txt"
@@ -9,29 +11,30 @@
 
 using namespace std;
 
-void findBestLambda(double**, double**, double&, double, double, bool(double));
+void findBestLambda(double**, size_t**, double&, double, double, bool(double));
 void estimatePhies(double&, const double&, double*, size_t, double);
-double estimateResult(double*);
-double* findXs(double**);
-bool validate(double*);
+double estimateResult(size_t*);
+size_t* findXs(double**);
+bool validate(size_t*);
 void input(ifstream&);
 void printPhies(double**, ofstream&);
 void showInfo();
 
-int N, Z, W, C;
+size_t N, Z, W, C;
 double* restrictionsW;
 double* restrictionsC;
 double* probabilities;
 
 int main() {
 	ifstream ifs;
-	string str;
+	stringstream ss;
 	string wDirectory;
 	double** phies = new double* [N];
-	double* xs = nullptr;
+	size_t* xs = nullptr;
 	double lambda;
 
 	showInfo();
+
 	cout << "Please enter the working directory:: ";
 	getline(cin, wDirectory);
 
@@ -45,6 +48,7 @@ int main() {
 	ifs.close();
 
 	Z = C;
+	ss << setprecision(0);
 
 	for (size_t i = 0; i < N; i++) {
 		phies[i] = new double[Z];
@@ -68,41 +72,61 @@ int main() {
 		return errno;
 	}
 
-	str = "\nLambda = " + to_string(lambda) + "\nZ | ";
+	ss << "\nLambda = " << lambda << "\nZ | ";
 	for (size_t i = 0; i < N; i++) {
-		str += "phi" + to_string(i) + ", ";
+		ss << "phi" << i << ", ";
 	}
-	str += "\n";
+	ss << "\n";
 
-	ofs << str.c_str();
+	ofs << ss.str();
 
 	printPhies(phies, ofs);
+	ss.str(string());
 	ofs.flush();
 
-	str = "\nXs:: ";
+	ss << setprecision(0);
+
+	ss << "\nXs:: ";
 	for (size_t i = 0; i < N; i++) {
-		str += to_string(xs[i]) + ", ";
+		ss << xs[i] << ", ";
 	}
 
 	double result = estimateResult(xs);
-	str += "\n\nResult = " + to_string(result);
+	double wSum = 0, cSum = 0;
 
-	ofs << str.c_str();
-	ofs.close();
+	ss << "\n\nResult:: \nW | ";
 
 	for (size_t i = 0; i < N; i++) {
-		delete[] phies[i];
+		wSum += xs[i] * restrictionsW[i];
+		ss << xs[i] << "x" << restrictionsW[i] << (i == (N - 1) ? " = " : " + ");
+	}
+	ss << wSum << "\nC | ";
+
+	for (size_t i = 0; i < N; i++) {
+		cSum += xs[i] * restrictionsC[i];
+		ss << xs[i] << "x" << restrictionsC[i] << (i == (N - 1) ? " = " : " + ");
+	}
+	ss << cSum << "\nOverall | " << result;
+
+	ofs << ss.str();
+	ofs.close();
+	ss.str(string());
+
+	for (size_t i = 0; i < N; i++) {
+		delete phies[i];
 	}
 
 	delete xs;
+	delete[] restrictionsW;
+	delete[] restrictionsC;
+	delete[] probabilities;
 
 	system((string("notepad ") + wDirectory + string(OUTPUT_F_NAME)).c_str());
-	getchar();
 }
 
-void findBestLambda(double** phies, double** xs, double& lambda, double initial, double step, bool check(double)) {
+void findBestLambda(double** phies, size_t** xs, double& lambda, double initial, double step, bool check(double)) {
 	double** current_phies = new double* [N];
-	double* temp = nullptr;
+	size_t* temp = nullptr;
 	double xsMax = -INFINITY;
 
 	for (size_t i = 0; i < N; i++) {
@@ -160,7 +184,7 @@ void estimatePhies(double& max, const double& last_max, double* phies, size_t x,
 	max = c_max;
 };
 
-double estimateResult(double* xs) {
+double estimateResult(size_t* xs) {
 	double result = 1.0;
 
 	for (size_t i = 0; i < N; i++) {
@@ -170,9 +194,9 @@ double estimateResult(double* xs) {
 	return result;
 }
 
-double* findXs(double** phies) {
+size_t* findXs(double** phies) {
 	struct {
-		int x;
+		size_t x;
 		double phi;
 	} max_phies[7];
 
@@ -189,7 +213,7 @@ double* findXs(double** phies) {
 		}
 	}
 
-	double* result = new double[N];
+	size_t* result = new size_t[N];
 	for (size_t i = 0; i < N; i++) {
 		result[i] = max_phies[i].x;
 	}
@@ -197,7 +221,7 @@ double* findXs(double** phies) {
 	return result;
 };
 
-bool validate(double* xs) {
+bool validate(size_t* xs) {
 	double wS = 0;
 	double cS = 0;
 
@@ -250,24 +274,24 @@ void printPhies(double** phies, ofstream& fs) {
 };
 
 void showInfo() {
-	string infoBuffer;
-	infoBuffer += "----------------------------------------------------------------------------------------------\n";
-	infoBuffer += "You should have input.txt file where you will write restrictions and items count.\n";
-	infoBuffer += "Input format.\n";
-	infoBuffer += "\n";
-	infoBuffer += "N\n";
-	infoBuffer += "c_1 c_2 c_3 ... c_n C\n";
-	infoBuffer += "w_1 w_2 w_3 ... w_n W\n";
-	infoBuffer += "p_1 p_2 p_3 ... p_n\n";
-	infoBuffer += "\n";
-	infoBuffer += "Example...\n";
-	infoBuffer += "7\n";
-	infoBuffer += "4.0 8.0 7.0 3.0 5.0 3.0 6.0 100\n";
-	infoBuffer += "4.0 6.0 12.0 10.0 5.0 8.0 10.0 120\n";
-	infoBuffer += "0.9 0.85 0.88 0.75 0.9 0.8 0.75\n";
-	infoBuffer += "\n";
-	infoBuffer += "You can find results in the same directory in output.txt file.\n";
-	infoBuffer += "----------------------------------------------------------------------------------------------\n";
+	stringstream infoBuffer;
+	infoBuffer << "----------------------------------------------------------------------------------------------\n";
+	infoBuffer << "You should have input.txt file where you will write restrictions and items count.\n";
+	infoBuffer << "Input format.\n";
+	infoBuffer << "\n";
+	infoBuffer << "N\n";
+	infoBuffer << "c_1 c_2 c_3 ... c_n C\n";
+	infoBuffer << "w_1 w_2 w_3 ... w_n W\n";
+	infoBuffer << "p_1 p_2 p_3 ... p_n\n";
+	infoBuffer << "\n";
+	infoBuffer << "Example...\n";
+	infoBuffer << "7\n";
+	infoBuffer << "4.0 8.0 7.0 3.0 5.0 3.0 6.0 100\n";
+	infoBuffer << "4.0 6.0 12.0 10.0 5.0 8.0 10.0 120\n";
+	infoBuffer << "0.9 0.85 0.88 0.75 0.9 0.8 0.75\n";
+	infoBuffer << "\n";
+	infoBuffer << "You can find results in the same directory in output.txt file.\n";
+	infoBuffer << "----------------------------------------------------------------------------------------------\n";
 
-	cout << infoBuffer;
+	cout << infoBuffer.str();
 }
