@@ -11,6 +11,7 @@ using namespace std;
 
 void findBestLambda(double**, double**, double&, double, double, bool(double));
 void estimatePhies(double&, const double&, double*, size_t, double);
+double estimateResult(double*);
 double* findXs(double**);
 bool validate(double*);
 void input(ifstream&);
@@ -83,6 +84,9 @@ int main() {
 		str += to_string(xs[i]) + ", ";
 	}
 
+	double result = estimateResult(xs);
+	str += "\n\nResult = " + to_string(result);
+
 	ofs << str.c_str();
 	ofs.close();
 
@@ -153,6 +157,16 @@ void estimatePhies(double& max, const double& last_max, double* phies, size_t x,
 
 	max = c_max;
 };
+
+double estimateResult(double* xs) {
+	double result = 1.0;
+
+	for (size_t i = 0; i < N; i++) {
+		result *= 1 - pow(probabilities[i], 1 + xs[i]);
+	}
+
+	return result;
+}
 
 double* findXs(double** phies) {
 	struct {
