@@ -94,6 +94,8 @@ int main() {
 		delete[] phies[i];
 	}
 
+	delete xs;
+
 	system((string("notepad ") + wDirectory + string(OUTPUT_F_NAME)).c_str());
 	getchar();
 }
